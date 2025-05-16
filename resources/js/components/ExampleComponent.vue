@@ -5,7 +5,7 @@
                 Example Component
             </div>
             <div class="card-body">
-                <p>I'm an example Vue component in your Laravel application!</p>
+                <p>I'm an example Vue componkkkent in your Laravel application!</p>
                 <button @click="incrementCount" class="btn btn-primary">Count: {{ count }}</button>
             </div>
         </div>
