@@ -1,0 +1,96 @@
+version: '3'
+
+services:
+  # PHP Service
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        user: sammy
+        uid: 1000
+    image: ccis-app
+    container_name: ccis-app
+    restart: unless-stopped
+    working_dir: /var/www/
+    environment:
+      - APP_ENV=${APP_ENV:-local}
+      - CONTAINER_ROLE=app
+    volumes:
+      - ./:/var/www
+    networks:
+      - ccis-network
+
+  # Nginx Service
+  nginx:
+    image: nginx:alpine
+    container_name: ccis-nginx
+    restart: unless-stopped
+    ports:
+      - 4000:80
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d/
+    depends_on:
+      - app
+    networks:
+      - ccis-network
+
+  # MySQL Service
+  db:
+    image: mysql:8.0
+    container_name: ccis-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-CCIS}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_USER: ${DB_USERNAME:-laravel}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    ports:
+      - "3309:3306"
+    volumes:
+      - ccis-data:/var/lib/mysql
+    networks:
+      - ccis-network
+
+  # phpMyAdmin Service
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: ccis-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+    ports:
+      - 4041:80
+    depends_on:
+      - db
+    networks:
+      - ccis-network
+
+  # Node Service for frontend
+  node:
+    image: node:18-alpine
+    container_name: ccis-node
+    volumes:
+      - ./:/var/www
+    working_dir: /var/www
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - 5173:5173
+      - 5174:5174
+    networks:
+      - ccis-network
+    depends_on:
+      - app
+
+networks:
+  ccis-network:
+    driver: bridge
+
+volumes:
+  ccis-data:
+    driver: local 
